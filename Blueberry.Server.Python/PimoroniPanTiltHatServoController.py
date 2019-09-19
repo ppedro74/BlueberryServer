@@ -79,3 +79,43 @@ class PimoroniPanTiltHatServoController(ServoController.ServoController):
         config |= self._light_on      << 4
         self.slave.write_reg_byte(self.REG_CONFIG, config)
 
+def test():
+    logging.basicConfig(format="%(process)d-%(name)s-%(levelname)s-%(message)s", level=logging.INFO)
+    logging.info("Starting test")
+
+    if sys.platform == "linux" or sys.platform == "linux2":
+        import DeviceI2CController
+        i2c_com = DeviceI2CController.DeviceI2CController(1, logging.DEBUG)
+    else:
+        import FakeI2CController
+        i2c_com = FakeI2CController.FakeI2CController(logging.DEBUG)
+    i2c_com.start()
+
+    import PimoroniPanTiltHatServoController
+    servo_controller = PimoroniPanTiltHatServoController.PimoroniPanTiltHatServoController(i2c_com, logging.DEBUG)
+    servo_controller.start()
+
+    pan_servo = ServoController.ServoPort(servo_controller, 0, 575, 2325)
+    tilt_servo = ServoController.ServoPort(servo_controller, 1, 575, 2325)
+
+    import time
+
+    delay = 0.01
+
+    logging.info("Moving from 0..179")
+    for angle in range(0, 180, 1):
+            pan_servo.set_position(angle)
+            tilt_servo.set_position(angle)
+            time.sleep(delay)
+
+    logging.info("Moving from 178..0")
+    for angle in range(178, -1, -1):
+            pan_servo.set_position(angle)
+            tilt_servo.set_position(angle)
+            time.sleep(delay)
+
+    servo_controller.stop()
+    i2c_com.stop()
+
+if __name__ == "__main__":
+    test()
