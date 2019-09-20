@@ -39,13 +39,14 @@ class PimoroniPanTiltHatServoController(ServoController.ServoController):
         self.slave.close()
     
     def release(self, port):
-        self.logger.debug("release port=%s", port)
-
         if port == 0:
-            self._enable_servo1 = state
+            self._enable_servo1 = False
+        elif port == 1:
+            self._enable_servo2 = False
         else:
-            self._enable_servo2 = state
+            return
 
+        self.logger.debug("release port=%s", port)
         self._set_config()
 
     def set_position(self, port, position_in_us):
@@ -113,6 +114,9 @@ def test():
             pan_servo.set_position(angle)
             tilt_servo.set_position(angle)
             time.sleep(delay)
+
+    pan_servo.release()
+    tilt_servo.release()
 
     servo_controller.stop()
     i2c_com.stop()

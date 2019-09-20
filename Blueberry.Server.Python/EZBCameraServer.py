@@ -45,13 +45,16 @@ def start(port):
 
     use_fake_camera = True
     
-    #if sys.platform == "linux" or sys.platform == "linux2":
-    #    use_fake_camera = False
-    #    import PiCameraController
-    #    camera = PiCameraController.PiCameraController(server, (320,240), 30, logging.DEBUG)
-    #    camera.start()
-    #    ComponentRegistry.ComponentRegistry.register_component(camera.name, camera)
-    
+    if sys.platform == "linux" or sys.platform == "linux2":
+        try:
+            import PiCameraController
+            camera = PiCameraController.PiCameraController(server, (320,240), 30, logging.DEBUG)
+            camera.start()
+            ComponentRegistry.ComponentRegistry.register_component(camera.name, camera)
+            use_fake_camera = False
+        except Exception as ex:
+            logging.error("Error loading PiCameraController ex=%s", ex)
+            
     if use_fake_camera:
         import FakeCameraController
         camera = FakeCameraController.FakeCameraController(server, (320,240), 32, logging.DEBUG)
