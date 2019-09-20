@@ -39,6 +39,7 @@ def setup_i2c():
         import FakeI2CController
         com = FakeI2CController.FakeI2CController(logging.DEBUG)
     ComponentRegistry.ComponentRegistry.register_component("i2c", com)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
     com.start()
     return com
 
@@ -46,7 +47,7 @@ def setup_digital_ports():
     if sys.platform == "linux" or sys.platform == "linux2":
         import RpiGPIODigitalController
         com = RpiGPIODigitalController.RpiGPIODigitalController(logging.DEBUG)
-        ComponentRegistry.ComponentRegistry.register_component(com.name, com)
+        ComponentRegistry.ComponentRegistry.register_controller(com)
         #+-----+---------+--B Plus--+-----------+-----+
         #| BCM |   Name  | Physical | Name      | BCM |
         #+-----+---------+----++----+-----------+-----+
@@ -90,15 +91,27 @@ def setup_digital_ports():
     else:
         import FakeDigitalController
         com = FakeDigitalController.FakeDigitalController(logging.DEBUG)
-        ComponentRegistry.ComponentRegistry.register_component(com.name, com)
+        ComponentRegistry.ComponentRegistry.register_controller(com)
         for port in range(24):
             ComponentRegistry.ComponentRegistry.register_component("D" + str(port),  DigitalController.DigitalPort(com, port))
         com.start()
 
-def setup_i2c_PCA9685Controller(i2c_com):
+def setup_i2c_PCA9685Controller(i2c_com, freq=490):
     import PCA9685Controller
     com = PCA9685Controller.PCA9685Controller(i2c_com, logging.DEBUG)
-    ComponentRegistry.ComponentRegistry.register_component(com.name, com)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
+    for port in range(16):
+        ComponentRegistry.ComponentRegistry.register_component("P"+str(port), PWMController.PWMPort(com, port))
+    com.start()
+    com.frequency = freq
+
+def setup_i2c_PCA9685ServoController(i2c_com):
+    import PCA9685Controller
+    com = PCA9685Controller.PCA9685ServoController(i2c_com, logging.DEBUG)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
+    for port in range(16):
+        ComponentRegistry.ComponentRegistry.register_component("S"+str(port), ServoController.ServoPort(com, port, 560, 2140))
+    #bear in mind pwm ports frequency is 50 hz used for servos (frequency is per controller) 
     for port in range(16):
         ComponentRegistry.ComponentRegistry.register_component("P"+str(port), PWMController.PWMPort(com, port))
     com.start()
@@ -106,7 +119,7 @@ def setup_i2c_PCA9685Controller(i2c_com):
 def setup_i2c_PimoroniPanTiltHatServoController(i2c_com):
     import PimoroniPanTiltHatServoController
     com = PimoroniPanTiltHatServoController.PimoroniPanTiltHatServoController(i2c_com, logging.DEBUG)
-    ComponentRegistry.ComponentRegistry.register_component(com.name, com)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
     for port in range(2):
         ComponentRegistry.ComponentRegistry.register_component("S"+str(port), ServoController.ServoPort(com, port, 575, 2325))    
     com.start()
@@ -114,21 +127,23 @@ def setup_i2c_PimoroniPanTiltHatServoController(i2c_com):
 def setup_serial_MaestroServoController(serial_port_name):
     import MaestroServoController
     com = MaestroServoController.MaestroServoController(serial_port_name, logging.DEBUG)
-    ComponentRegistry.ComponentRegistry.register_component(com.name, com)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
     for port in range(24):
         #ez-robot servos: 560-2140 us
         ComponentRegistry.ComponentRegistry.register_component("S"+str(port), ServoController.ServoPort(com, port, 560, 2140))
     com.start()
 
-def setup_SerialPortController(alias, device_name, baud_rate):
+def setup_SerialPortController(component_name, device_name, baud_rate):
     com = SerialPortController.SerialPortController(device_name, baud_rate, logging.DEBUG)
-    ComponentRegistry.ComponentRegistry.register_component(alias, com)
+    ComponentRegistry.ComponentRegistry.register_component(component_name, com)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
     com.start()
 
 def setup_PyAudioPlayerController():
     import PyAudioPlayerController
     com = PyAudioPlayerController.PyAudioPlayerController(logging.DEBUG)
     ComponentRegistry.ComponentRegistry.register_component("audio_player", com)
+    ComponentRegistry.ComponentRegistry.register_controller(com)
     com.start()
    
 
@@ -136,9 +151,10 @@ def main():
     logging.basicConfig(format="%(process)d-%(name)s-%(levelname)s-%(message)s", level=logging.INFO)
     logging.info("Starting... platform=%s hostname=%s", sys.platform, socket.gethostname())
 
-    setup_PyAudioPlayerController()
+    #audio support
+    #setup_PyAudioPlayerController()
 
-    setup_digital_ports()
+    #setup_digital_ports()
 
     i2c_com = setup_i2c()
     
@@ -152,10 +168,13 @@ def main():
     ###Adafruit 16-Channel PWM https://www.adafruit.com/product/2327 
     ###Used for PWM ports (0..23)
     #setup_i2c_PCA9685Controller(i2c_com)
+    ###Used for Servo ports (0..23)
+    #setup_i2c_PCA9685ServoController(i2c_com)
 
     ###Pimoroni Pan-Tilt HAT  https://shop.pimoroni.com/products/pan-tilt-hat
     ###Used to map servo ports D0..D1
     #setup_i2c_PimoroniPanTiltHatServoController(i2c_com)
+
 
     EZBTcpServer.start(10023)
     EZBCameraServer.start(10024)
@@ -165,11 +184,11 @@ def main():
 
     logging.debug("*** Enter pressed ***")
 
-    for alias in ComponentRegistry.ComponentRegistry.Components:
-        com = ComponentRegistry.ComponentRegistry.Components[alias]
-        if isinstance(com, Controller.Controller):
-            logging.info("stopping controller: %s", alias)
-            com.stop()
+    controllers = ComponentRegistry.ComponentRegistry.Controllers.copy()
+    controllers.reverse()
+    for controller in controllers:
+        logging.info("stopping controller: %s", controller.name)
+        controller.stop()
 
     logging.info("Terminated")
 

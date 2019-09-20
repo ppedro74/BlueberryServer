@@ -14,6 +14,7 @@ class FakeI2CSlave(I2CController.I2CSlave):
 
     def close(self):
         self.logger.debug("closed")
+        super().close()
 
     def write(self, data):
         try:
@@ -37,13 +38,6 @@ class FakeI2CController(I2CController.I2CController):
     def __init__(self, log_level):
         super().__init__("FakeI2CController", log_level)
 
-    def get_slave(self, i2c_addr):
-        self.lock.acquire()
-        try:
-            if i2c_addr not in self.slaves:
-                slave = FakeI2CSlave(self, i2c_addr)
-                self.slaves[i2c_addr] = slave
-            
-            return self.slaves[i2c_addr]
-        finally:
-            self.lock.release()
+    def create_slave(self, i2c_addr):
+        return FakeI2CSlave(self, i2c_addr)
+

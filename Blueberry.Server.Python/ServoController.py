@@ -46,12 +46,15 @@ class ServoController(Controller.Controller):
         self.logger.setLevel(log_level)
 
     def set_position(self, port, position_in_us):
+        self.logger.debug("set_position port=%s position_in_us=%s", port, position_in_us)
         pass
 
     def set_speed(self, port, speed):
+        self.logger.debug("set_speed port=%s speed=%s", port, speed)
         pass
 
     def release(self, port):
+        self.logger.debug("release port=%s", port)
         pass
 
     def start(self):

@@ -8,7 +8,7 @@ import time
 import math
 import logging
 import PWMController
-import DigitalController
+import ServoController
 
 class PCA9685Controller(PWMController.PWMController):
     """
@@ -44,14 +44,15 @@ class PCA9685Controller(PWMController.PWMController):
     OCH           = 1<<3
     OUTDRV        = 1<<2
 
-    def __init__(self, i2c_controller, log_level, i2c_address=0x40):
-        super().__init__("PCA9685Controller-"+str(i2c_address), log_level)
+    def __init__(self, i2c_controller, log_level, i2c_address=0x40, osc_clock=25000000):
+        super().__init__(self.__class__.__name__+"-"+str(i2c_address), log_level)
         self.i2c_controller = i2c_controller
         self.i2c_address = i2c_address
+        self._osc_clock = osc_clock
         self.slave = None
 
     def stop(self):
-        "Switches all PWM channels off and releases resources."
+        #Switches all PWM ports off
         self.set_duty_cycle(-1, 0)
         self.slave.close()
 
@@ -63,71 +64,122 @@ class PCA9685Controller(PWMController.PWMController):
         mode = self.slave.read_reg_byte(self.MODE1)
         self.slave.write_reg_byte(self.MODE1, mode & ~self.SLEEP)
         time.sleep(0.0005)
-        self.set_duty_cycle(-1, 0)
-        self.set_frequency(60)
+        #default pwm frequency
+        self.frequency = 60
 
-    def get_frequency(self):
-        return self.frequency
+    @property
+    def frequency(self):
+        return (self._osc_clock / 4096.0) / (self._prescale + 1)
 
-    def set_frequency(self, frequency):
-        prescale = 25000000.0    # 25MHz
-        prescale /= 4096.0       # 12-bit
-        prescale /= float(frequency)
-        prescale -= 1.0
-        prescale = int(math.floor(prescale + 0.5))
-        if prescale < 3:
-            self.logger.debug("prescale=%s adjusted to %s", prescale, 3)
-            prescale = 3
-        elif prescale > 255:
-            self.logger.debug("prescale=%s adjusted to %s", prescale, 255)
-            prescale = 255
+    @frequency.setter
+    def frequency(self, value):
+        self._prescale = self._osc_clock
+        self._prescale /= 4096.0  # 12-bit
+        self._prescale /= float(value)
+        self._prescale -= 1.0
+        self._prescale = int(math.floor(self._prescale + 0.5))
+        if self._prescale < 3:
+            self.logger.debug("self._prescale=%s adjusted to %s", self._prescale, 3)
+            self._prescale = 3
+        elif self._prescale > 255:
+            self.logger.debug("self._prescale=%s adjusted to %s", self._prescale, 255)
+            self._prescale = 255
         mode = self.slave.read_reg_byte(self.MODE1);
         self.slave.write_reg_byte(self.MODE1, (mode & ~self.SLEEP) | self.SLEEP)
-        self.slave.write_reg_byte(self.PRESCALE, prescale)
+        self.slave.write_reg_byte(self.PRESCALE, self._prescale)
         self.slave.write_reg_byte(self.MODE1, mode)
-        time.sleep(0.0005)
+        time.sleep(0.005)
         self.slave.write_reg_byte(self.MODE1, mode | self.RESTART)
-        self.frequency = (25000000.0 / 4096.0) / (prescale + 1)
-        self.pulse_width = (1000000.0 / self.frequency)
+        self.pulse_width_us = (1000000.0 / self.frequency)
+        self.logger.debug ("freq=%s pulse_width=%s (us per bit)", self.frequency, self.pulse_width_us)
 
-    def set_duty_cycle(self, channel, percent):
-        "Use -1 for all channels."
-        steps = int(round(percent * (4096.0 / 100.0)))
+    def set_duty_cycle(self, port, value, max_value=100):
+        #Use -1 for all ports.
+
+        if max_value == 4096:
+            steps = int(value)
+        else:
+            steps = int(round(value * (4096.0 / max_value)))
         if steps < 0:
             on = 0
             off = 4096
-        elif steps > 4095:
+        elif steps >= 4096:
             on = 4096
             off = 0
         else:
             on = 0
             off = steps
-        if (channel >= 0) and (channel <= 15):
-            data = [self.LED0_ON_L+4*channel, on & 0xFF, on >> 8, off & 0xFF, off >> 8]
+        self.logger.debug("set_duty_cycle port=%s value=%s max_value=%s on=%s off=%s", port, value, max_value, on, off)
+        if (port >= 0) and (port <= 15):
+            data = [self.LED0_ON_L+4*port, on & 0xFF, on >> 8, off & 0xFF, off >> 8]
             self.slave.write(bytearray(data))
-        else:
+        elif port==-1:
             data = [self.ALL_LED_ON_L, on & 0xFF, on >> 8, off & 0xFF, off >> 8]
             self.slave.write(bytearray(data))
 
-    def set_pulse_width(self, channel, width):
-        self.set_duty_cycle(channel, (float(width) / self.pulse_width) * 100.0)
+    def set_pulse_width(self, channel, width_in_us):
+        #self.set_duty_cycle(channel, (float(width_in_us) / self.pulse_width_us) * 100.0)
+        steps = round((width_in_us * 4096)/self.pulse_width_us)
+        self.set_duty_cycle(channel, steps, 4096)
+
+class PCA9685ServoController(PCA9685Controller, ServoController.ServoController):
+    def __init__(self, i2c_controller, log_level, i2c_address=0x40, osc_clock=25000000):
+        self._started = False
+        PCA9685Controller.__init__(self, i2c_controller, log_level, i2c_address, osc_clock)
+
+    def start(self):
+        super().start()
+        #servo frequency
+        #PCA9685Controller.frequency.fset(self, 50)
+        self.frequency = 50
+        self._started = True
+
+    @PCA9685Controller.frequency.setter
+    def frequency(self, value):
+        if self._started:
+            raise NotImplementedError("frequency cannot be set on servo controller")
+        PCA9685Controller.frequency.fset(self, value)
+
+    def release(self, port):
+        self.set_duty_cycle(port, 0)
+        super().release(port)
+
+    def set_position(self, port, position_in_us):
+        super().set_position(port, position_in_us)
+        self.set_pulse_width(port, position_in_us)
+
+    def set_speed(self, port, speed):
+        pass
+
+
 
 def test():
-    import DeviceI2CController
-    i2c_com = DeviceI2CController.DeviceI2CController(1, logging.DEBUG)
+    if sys.platform == "linux" or sys.platform == "linux2":
+        import DeviceI2CController
+        i2c_com = DeviceI2CController.DeviceI2CController(1, logging.DEBUG)
+    else:
+        import FakeI2CController
+        i2c_com = FakeI2CController.FakeI2CController(logging.DEBUG)
     i2c_com.start()
 
-    com = PCA9685Controller(i2c_com, logging.DEBUG)
-    com.start()
+    pwm_ctrl = PCA9685Controller(i2c_com, logging.DEBUG)
+    pwm_ctrl.start()
+    p4 = PWMController.PWMPort(pwm_ctrl, 4)
+    p4.set_duty_cycle(25)
+    p5 = PWMController.PWMPort(pwm_ctrl, 5)
+    p5.set_duty_cycle(50)
+    p6 = PWMController.PWMPort(pwm_ctrl, 6)
+    p6.set_duty_cycle(75)
+    pwm_ctrl.stop()
 
-    p4 = PWMController.PWMPort(com, 4)
-    p4.set_duty_cycle(100)
+    #servo_ctrl = PCA9685ServoController(i2c_com, logging.DEBUG)
+    #servo_ctrl.start()
+    #s0 = ServoController.ServoPort(servo_ctrl, 0, 560, 2140)
+    #s0.set_position(90)
+    #s1 = ServoController.ServoPort(servo_ctrl, 1, 560, 2140)
+    #s1.set_position(90)
+    #servo_ctrl.stop()
 
-    p5 = PWMController.PWMPort(com, 5)
-    p5.set_duty_cycle(0)
-
-    p6 = PWMController.PWMPort(com, 6)
-    p6.set_duty_cycle(100)
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(process)d-%(name)s-%(levelname)s-%(message)s", level=logging.INFO)

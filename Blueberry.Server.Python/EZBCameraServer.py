@@ -37,11 +37,11 @@ class EZBCameraTcpServer(TcpServer.TcpServer):
 
 def start(port):
     server = EZBCameraTcpServer(port, logging.DEBUG)
-    ComponentRegistry.ComponentRegistry.register_component(server.name, server)
+    ComponentRegistry.ComponentRegistry.register_controller(server)
 
     broadcaster = EZBCameraUdpBroadcaster(server, 3, logging.DEBUG)
     broadcaster.start()
-    ComponentRegistry.ComponentRegistry.register_component(broadcaster.name, broadcaster)
+    ComponentRegistry.ComponentRegistry.register_controller(broadcaster)
 
     use_fake_camera = True
     
@@ -50,7 +50,7 @@ def start(port):
             import PiCameraController
             camera = PiCameraController.PiCameraController(server, (320,240), 30, logging.DEBUG)
             camera.start()
-            ComponentRegistry.ComponentRegistry.register_component(camera.name, camera)
+            ComponentRegistry.ComponentRegistry.register_controller(camera)
             use_fake_camera = False
         except Exception as ex:
             logging.error("Error loading PiCameraController ex=%s", ex)
@@ -59,7 +59,7 @@ def start(port):
         import FakeCameraController
         camera = FakeCameraController.FakeCameraController(server, (320,240), 32, logging.DEBUG)
         camera.start()
-        ComponentRegistry.ComponentRegistry.register_component(camera.name, camera)
+        ComponentRegistry.ComponentRegistry.register_controller(camera)
 
     time.sleep(3)
     server.start()

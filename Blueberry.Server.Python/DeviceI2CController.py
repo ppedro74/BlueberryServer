@@ -71,11 +71,13 @@ class DeviceI2CSlave(I2CController.I2CSlave):
     def close(self):
         if self.fd is None:
             return
+
         try:
             self.fd.close()
             self.fd = None
         except Exception as ex:
             self.logger.error("closing: ex=%s", ex)
+        super().close()
 
     def write(self, data):
         try:
@@ -112,23 +114,17 @@ class DeviceI2CController(I2CController.I2CController):
         super().__init__("DeviceI2CController-{}".format(bus), log_level)
         self.bus = bus
 
-    def get_slave(self, i2c_addr):
-        self.lock.acquire()
+    def create_slave(self, i2c_addr):
         try:
-            if i2c_addr not in self.slaves:
-                try:
-                    dev_name = "/dev/i2c-"+str(self.bus)
-                    fd = io.open(dev_name, "r+b", buffering=0)
-                    #self.logger.debug("opened: dev_name:%s fd:%s addr:%s", dev_name, fd, i2c_addr)
+            dev_name = "/dev/i2c-"+str(self.bus)
+            fd = io.open(dev_name, "r+b", buffering=0)
+            #self.logger.debug("opened: dev_name:%s fd:%s addr:%s", dev_name, fd, i2c_addr)
 
-                    fcntl.ioctl(fd, I2C_SLAVE, i2c_addr)
-                    slave = DeviceI2CSlave(self, i2c_addr, fd)
-                    self.slaves[i2c_addr] = slave
-                except Exception as ex:
-                    self.logger.error("opening: ex=%s", ex)
-                    return None
-            
-            return self.slaves[i2c_addr]
-        finally:
-            self.lock.release()
+            fcntl.ioctl(fd, I2C_SLAVE, i2c_addr)
+            slave = DeviceI2CSlave(self, i2c_addr, fd)
+            return slave
+        except Exception as ex:
+            self.logger.error("opening: ex=%s", ex)
+            return None
+
 

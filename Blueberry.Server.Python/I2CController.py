@@ -13,7 +13,7 @@ class I2CSlave:
         self.close()
 
     def close(self):
-        pass
+        self.controller.remove_slave(self)
 
     def write(self, data):
         pass
@@ -50,8 +50,30 @@ class I2CController(Controller.Controller):
         self.slaves = dict()
         self.lock = threading.Lock()
 
-    def get_slave(self, i2c_addr):
+    def create_slave(self, i2c_addr):
         return None
+
+    def get_slave(self, i2c_addr):
+        self.lock.acquire()
+        try:
+            if i2c_addr not in self.slaves:
+                slave = self.create_slave(i2c_addr)
+                if slave is None:
+                    return None
+                self.slaves[i2c_addr] = slave    
+                self.logger.debug("created slave:%s #:%s", slave.i2c_addr, len(self.slaves))
+            return self.slaves[i2c_addr]
+        finally:
+            self.lock.release()
+
+    def remove_slave(self, slave):
+        self.lock.acquire()
+        try:
+            if slave.i2c_addr in self.slaves:
+                self.slaves.pop(slave.i2c_addr)
+                self.logger.debug("removed slave:%s #:%s", slave.i2c_addr, len(self.slaves))
+        finally:
+            self.lock.release()
 
     def write(self, i2c_addr, data):
         slave = self.get_slave(i2c_addr)
@@ -70,9 +92,11 @@ class I2CController(Controller.Controller):
     def stop(self):
         self.lock.acquire()
         try:
-            for i2c_addr in self.slaves:
+            slaves = self.slaves.copy()
+
+            for i2c_addr in slaves:
                 self.logger.debug("closing slave=%s", i2c_addr)
-                self.slaves[i2c_addr].close()
+                slaves[i2c_addr].close()
 
             self.slaves = dict()
         finally:

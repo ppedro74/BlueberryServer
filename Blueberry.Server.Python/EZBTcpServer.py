@@ -30,11 +30,11 @@ class EZBTcpServer(TcpServer.TcpServer):
 def start(port):
     server = EZBTcpServer(port, logging.DEBUG)
     server.start()
-    ComponentRegistry.ComponentRegistry.register_component(server.name, server)
+    ComponentRegistry.ComponentRegistry.register_controller(server)
 
     broadcaster = EZBTcpServerUdpBroadcaster(server, 3, logging.DEBUG)
     broadcaster.start()
-    ComponentRegistry.ComponentRegistry.register_component(broadcaster.name, broadcaster)
+    ComponentRegistry.ComponentRegistry.register_controller(broadcaster)
 
 
 
