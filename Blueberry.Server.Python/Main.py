@@ -154,7 +154,7 @@ def main():
     #audio support
     #setup_PyAudioPlayerController()
 
-    #setup_digital_ports()
+    setup_digital_ports()
 
     i2c_com = setup_i2c()
     
