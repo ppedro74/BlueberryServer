@@ -58,7 +58,7 @@ class PyAudioPlayerController(AudioPlayerController.AudioPlayerController):
         self.py_audio.terminate()
 
     @contextlib.contextmanager
-    def start(self, hide_debug_output = False):
+    def start(self, hide_debug_output = True):
         if hide_debug_output:
             #devnull = os.open(os.devnull, os.O_WRONLY)
             #old_stdout = os.dup(1)
