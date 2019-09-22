@@ -17,7 +17,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import os
 import sys
 import time
 import socket
@@ -140,6 +140,7 @@ def setup_SerialPortController(component_name, device_name, baud_rate):
     com.start()
 
 def setup_PyAudioPlayerController():
+    os.environ["PA_ALSA_PLUGHW"] = "1"
     import PyAudioPlayerController
     com = PyAudioPlayerController.PyAudioPlayerController(logging.DEBUG)
     ComponentRegistry.ComponentRegistry.register_component("audio_player", com)

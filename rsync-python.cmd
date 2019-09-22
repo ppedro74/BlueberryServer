@@ -9,5 +9,5 @@ set DST_PORT=22
 set KEY_FILE=C:\Users\ptp\Dropbox\Keys\nuci7-priv.ppk
 
 
-rem rsync -ruzv -batch %SRC_DIR% %DST_USER%@%DST_SERVER1%:%DST_DIR%
-rsync -ruzv -batch %SRC_DIR% %DST_USER%@%DST_SERVER2%:%DST_DIR%
+rsync -ruzv -batch %SRC_DIR% %DST_USER%@%DST_SERVER1%:%DST_DIR%
+rem rsync -ruzv -batch %SRC_DIR% %DST_USER%@%DST_SERVER2%:%DST_DIR%

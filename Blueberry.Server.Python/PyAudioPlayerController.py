@@ -14,8 +14,7 @@ class PyAudioPlayerController(AudioPlayerController.AudioPlayerController):
     AUDIO_SAMPLE_BITRATE = 14700
 
     def __init__(self, log_level, save_audio_streams=False):
-        self.logger = logging.getLogger("PyAudioPlayerController")
-        self.logger.setLevel(log_level)
+        super().__init__("PyAudioPlayerController", log_level)
         self.audio_stream = None
         self.audio_data = bytearray()
         self.lock = threading.Lock()
@@ -59,17 +58,18 @@ class PyAudioPlayerController(AudioPlayerController.AudioPlayerController):
         self.py_audio.terminate()
 
     @contextlib.contextmanager
-    def start(self):
-        #devnull = os.open(os.devnull, os.O_WRONLY)
-        #old_stdout = os.dup(1)
-        #sys.stdout.flush()
-        #os.dup2(devnull, 1)
-        #os.close(devnull)
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        old_stderr = os.dup(2)
-        sys.stderr.flush()
-        os.dup2(devnull, 2)
-        os.close(devnull)
+    def start(self, hide_debug_output = False):
+        if hide_debug_output:
+            #devnull = os.open(os.devnull, os.O_WRONLY)
+            #old_stdout = os.dup(1)
+            #sys.stdout.flush()
+            #os.dup2(devnull, 1)
+            #os.close(devnull)
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            old_stderr = os.dup(2)
+            sys.stderr.flush()
+            os.dup2(devnull, 2)
+            os.close(devnull)
 
         try:
             self.py_audio = pyaudio.PyAudio()
@@ -81,10 +81,11 @@ class PyAudioPlayerController(AudioPlayerController.AudioPlayerController):
                             stream_callback=self.play_audio_callback,
                             start=False)
         finally:
-            #os.dup2(old_stdout, 1)
-            #os.close(old_stdout)
-            os.dup2(old_stderr, 2)
-            os.close(old_stderr)
+            if hide_debug_output:
+                #os.dup2(old_stdout, 1)
+                #os.close(old_stdout)
+                os.dup2(old_stderr, 2)
+                os.close(old_stderr)
 
     def stream_init(self):
         self.lock.acquire()
@@ -131,10 +132,36 @@ class PyAudioPlayerController(AudioPlayerController.AudioPlayerController):
         self.audio_stream.start_stream()
 
 
-if __name__ == "__main__":
+def list_output_devices():
     p = pyaudio.PyAudio()
     for i in range(p.get_device_count()):
         info = p.get_device_info_by_index(i)
-        print (json.dumps(info, sort_keys=True, indent=4))
+        info_json = json.dumps(info, sort_keys=True, indent=4)
+        logging.info(info_json)
+    p.terminate()
 
+def play_file(fname):
+    wf = wave.open(fname, 'rb')
+    p = pyaudio.PyAudio()
+    chunk = 1024
+    logging.info("play file:%s sampleWidth:%s #channels:%s framerate:%s", fname, wf.getsampwidth(), wf.getnchannels(), wf.getframerate())
+    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                    channels=wf.getnchannels(),
+                    rate=wf.getframerate(),
+                    output=True)
+    data = wf.readframes(chunk)
+    while data != b'':
+        stream.write(data)
+        data = wf.readframes(chunk)
+    stream.close()
+    p.terminate() 
+
+if __name__ == "__main__":
+    logging.basicConfig(format="%(process)d-%(levelname)s-%(message)s", level=logging.DEBUG)
+    logging.info("Starting... platform=%s", sys.platform)
+    os.environ["PA_ALSA_PLUGHW"] = "1"
+    list_output_devices()
+    #play_file("/usr/share/sounds/alsa/Front_Left.wav")
+    #play_file("/usr/share/sounds/alsa/Front_Right.wav")
+    play_file("./assets/test-01.wav")
 
