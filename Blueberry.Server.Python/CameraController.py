@@ -20,8 +20,16 @@ class CameraController(Controller.Controller):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(log_level)
         self.shutdown = False
+        self.run_thread = None
+
+    def setup(self):
+        return True
 
     def start(self):
+        if not self.setup():
+            self.shutdown = True
+            return
+
         self.shutdown = False
         self.run_thread = threading.Thread(target=self.run, args=())
         self.run_thread.start()
@@ -33,8 +41,9 @@ class CameraController(Controller.Controller):
 
         self.logger.debug("stopping")
         self.shutdown = True
-        self.logger.debug("join th:%s", self.run_thread.getName())
-        self.run_thread.join()
+        if self.run_thread is not None:
+            self.logger.debug("join th:%s", self.run_thread.getName())
+            self.run_thread.join()
 
     def run(self):
         self.logger.debug("running thread:%s", threading.current_thread().getName())
@@ -65,3 +74,11 @@ class CameraController(Controller.Controller):
             stream.seek(0)
             data += bytearray()
             self.server.send_image(bytes(data))
+
+    def send_image(self, img_bytes):
+        data = bytearray()
+        data += self.TAG_EZ_IMAGE
+        img_len = len(img_bytes)
+        data += img_len.to_bytes(4, "little")
+        data += img_bytes
+        self.server.send_image(bytes(data))

@@ -10,9 +10,9 @@ import UdpBroadcaster
 import TcpClient
 
 class TcpServer(Controller.Controller):
-    def __init__(self, name, port, log_level):
+    def __init__(self, name, address, log_level):
         self.name = name
-        self.port = port
+        self.address = address
         self.log_level = log_level
         self.logger = logging.getLogger(name)
         self.logger.setLevel(log_level)
@@ -53,11 +53,10 @@ class TcpServer(Controller.Controller):
         self.logger.debug("terminated")
 
     def start(self):
-        server_address = ("", self.port)
-        self.logger.debug("starting up on %s", server_address)
+        self.logger.debug("starting up on %s", self.address)
 
         try:
-            self.socket.bind(server_address)
+            self.socket.bind(self.address)
             self.socket.listen(1)
 
             self.run_thread = threading.Thread(target=self.run,args=())

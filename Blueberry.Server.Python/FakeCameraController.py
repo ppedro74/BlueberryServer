@@ -24,11 +24,6 @@ class FakeCameraController(CameraController.CameraController):
             frame += 1
             img_buffer = io.BytesIO()
             img.save(img_buffer, format="JPEG", quality=100, subsampling=0)
-            data = bytearray()
-            data += self.TAG_EZ_IMAGE
             img_bytes = img_buffer.getvalue() 
-            img_len = len(img_bytes)
-            data += img_len.to_bytes(4, "little")
-            data += img_bytes
-            self.server.send_image(bytes(data))
+            self.send_image(img_bytes)
             time.sleep(self.frame_rate_delay)

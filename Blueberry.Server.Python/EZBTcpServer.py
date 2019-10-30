@@ -17,18 +17,18 @@ class EZBTcpServerUdpBroadcaster(UdpBroadcaster.UdpBroadcaster):
         super().__init__("EZBTcpServerUdpBroadcaster", 4242, delay, log_level)
 
     def get_message(self, hostname, addr):
-        return "{}||{}-Server||{}||{}".format("EZ-B", hostname, addr, self.server.port)
+        return "{}||{}-Server||{}||{}".format("EZ-B", hostname, addr, self.server.address[1])
 
 
 class EZBTcpServer(TcpServer.TcpServer):
-    def __init__(self, port, log_level):
-        super().__init__("EZBTcpServer", port, log_level)
+    def __init__(self, address, log_level):
+        super().__init__("EZBTcpServer", address, log_level)
 
     def get_client_instance(self, connection, client_address):
         return EZBTcpClient.EZBTcpClient(self, connection, client_address)
 
-def start(port):
-    server = EZBTcpServer(port, logging.DEBUG)
+def start(addr):
+    server = EZBTcpServer(addr, logging.DEBUG)
     server.start()
     ComponentRegistry.ComponentRegistry.register_controller(server)
 

@@ -26,13 +26,9 @@ class PiCameraController(CameraController.CameraController):
         for foo in self.camera.capture_continuous(stream, "jpeg", use_video_port=True):
             if self.shutdown:
                 break
-            data = bytearray()
-            data += self.TAG_EZ_IMAGE
-            img_len = stream.tell()
-            data += img_len.to_bytes(4, "little")
             stream.seek(0)
-            data += stream.read()
-            self.server.send_image(bytes(data))
+            img_bytes = bytes(stream.read())
+            self.send_image(img_bytes)
             stream.seek(0)
             stream.truncate()
 

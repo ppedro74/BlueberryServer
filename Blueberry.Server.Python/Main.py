@@ -22,6 +22,7 @@ import sys
 import time
 import socket
 import logging
+import argparse
 import Controller
 import DigitalController
 import PWMController
@@ -139,10 +140,10 @@ def setup_SerialPortController(component_name, device_name, baud_rate):
     ComponentRegistry.ComponentRegistry.register_controller(com)
     com.start()
 
-def setup_PyAudioPlayerController():
+def setup_PyAudioPlayerController(audio_output_index):
     os.environ["PA_ALSA_PLUGHW"] = "1"
     import PyAudioPlayerController
-    com = PyAudioPlayerController.PyAudioPlayerController(logging.DEBUG)
+    com = PyAudioPlayerController.PyAudioPlayerController(logging.DEBUG, audio_output_index)
     ComponentRegistry.ComponentRegistry.register_component("audio_player", com)
     ComponentRegistry.ComponentRegistry.register_controller(com)
     com.start()
@@ -152,33 +153,74 @@ def main():
     logging.basicConfig(format="%(process)d-%(name)s-%(levelname)s-%(message)s", level=logging.INFO)
     logging.info("Starting... platform=%s hostname=%s", sys.platform, socket.gethostname())
 
-    #audio support
-    #setup_PyAudioPlayerController()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ezbaddr", type=str, default="0.0.0.0", help="EZB Server IP address (default: %(default)s)")
+    parser.add_argument("--ezbport", type=int, default=10023, help="EZB Server TCP port (default: %(default)s)")
+    parser.add_argument("--camaddr", type=str, default="0.0.0.0", help="Camera Server IP Address (default: %(default)s)")
+    parser.add_argument("--camport", type=int, default=10024, help="Camera Server TCP Port (default: %(default)s)")
+    parser.add_argument("--camwidth", type=int, default=640, help="Camera Video's Width (default: %(default)s)")
+    parser.add_argument("--camheight", type=int, default=480, help="Camera Video's Height (default: %(default)s)")
+    parser.add_argument("--camfps", type=int, default=15, help="Camera Video's frames per second (default: %(default)s)")
+    parser.add_argument("--jpgquality", type=int, default=95, help="Jpeg's quality (0-100) (default: %(default)s)")
+    parser.add_argument("--audio", action='store_true', help="enable audio output (default: %(default)s)")
+    parser.add_argument("--audiooutputindex", type=int, default=0, help="AudioOutput index (default: %(default)s)")
+    parser.add_argument("--camtype", 
+                    default="none", 
+                    const="none",
+                    nargs="?",
+                    choices=["none", "picamera", "videocapture"],
+                    help="(default: %(default)s)")
+    parser.add_argument("--videocaptureindex", type=int, default=0, help="VideoCapture index (default: %(default)s)")
+    parser.add_argument("--uart0", type=str, default=None, help="UART 0's serial device e.g. /dev/serial0 com4 (default: %(default)s)")
+    parser.add_argument("--uart1", type=str, default=None, help="UART 1's serial device e.g. /dev/serial0 com4 (default: %(default)s)")
+    parser.add_argument("--uart2", type=str, default=None, help="UART 2's serial device e.g. /dev/serial0 com4 (default: %(default)s)")
+    parser.add_argument("--pca9685", 
+                    default="none", 
+                    const="none",
+                    nargs="?",
+                    choices=["none", "servo", "pwm"],
+                    help="servo=controller for servos, pwm=controller for pwm ports (default: %(default)s)")
+    parser.add_argument("--pantilthat", action='store_true', help="enable Pimoroni Pan-Tilt HAT https://shop.pimoroni.com/products/pan-tilt-hat (default: %(default)s)")
+    parser.add_argument("--maestro", type=str, default=None, help="enable Pololu Maestro serial device e.g. /dev/ttyACM0 com40 (default: %(default)s)")
+
+    args = parser.parse_args()
+
+    if args.audio:
+        setup_PyAudioPlayerController(args.audiooutputindex)
 
     setup_digital_ports()
 
     i2c_com = setup_i2c()
     
-    #setup_SerialPortController("uart0", "/dev/serial0" if sys.platform == "linux" or sys.platform == "linux2" else "com40", 115200)
+    if args.uart0 is not None:
+        setup_SerialPortController("uart0", args.uart0, 115200)
+    if args.uart1 is not None:
+        setup_SerialPortController("uart1", args.uart1, 115200)
+    if args.uart2 is not None:
+        setup_SerialPortController("uart2", args.uart2, 115200)
 
+    if args.maestro is not None:
+        ###Pololu Mini Maestro 24-Channel USB Servo Controller https://www.pololu.com/product/1356
+        ###Used for 24 servos ports D0..D23
+        setup_serial_MaestroServoController(args.maestro)
 
-    ###Pololu Mini Maestro 24-Channel USB Servo Controller https://www.pololu.com/product/1356
-    ###Used for 24 servos ports D0..D23
-    #setup_serial_MaestroServoController("/dev/ttyACM0" if sys.platform == "linux" or sys.platform == "linux2" else "com40")
+    if args.pca9685 == "pwm":
+        ###Adafruit 16-Channel PWM https://www.adafruit.com/product/2327 
+        ###Used for PWM ports (0..23)
+        setup_i2c_PCA9685Controller(i2c_com)
+    elif args.pca9685 == "servo":
+        ###Used for Servo ports (0..23)
+        setup_i2c_PCA9685ServoController(i2c_com)
 
-    ###Adafruit 16-Channel PWM https://www.adafruit.com/product/2327 
-    ###Used for PWM ports (0..23)
-    #setup_i2c_PCA9685Controller(i2c_com)
-    ###Used for Servo ports (0..23)
-    #setup_i2c_PCA9685ServoController(i2c_com)
+    if args.pantilthat:
+        ###Pimoroni Pan-Tilt HAT  https://shop.pimoroni.com/products/pan-tilt-hat
+        ###Used to map servo ports D0..D1
+        setup_i2c_PimoroniPanTiltHatServoController(i2c_com)
 
-    ###Pimoroni Pan-Tilt HAT  https://shop.pimoroni.com/products/pan-tilt-hat
-    ###Used to map servo ports D0..D1
-    #setup_i2c_PimoroniPanTiltHatServoController(i2c_com)
+    EZBTcpServer.start((args.ezbaddr, args.ezbport))
 
-
-    EZBTcpServer.start(10023)
-    EZBCameraServer.start(10024)
+    if args.camtype != "none":
+        EZBCameraServer.start((args.camaddr, args.camport), args)
 
     time.sleep(3)
     input("===> Press Enter to quit...\n")
