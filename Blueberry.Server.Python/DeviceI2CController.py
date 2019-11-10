@@ -3,6 +3,7 @@ import logging
 import fcntl
 import I2CController
 import ctypes
+import array
 
 # I2C C API constants (from linux kernel headers)
 I2C_M_TEN             = 0x0010  # this is a ten bit chip address
@@ -66,15 +67,15 @@ class DeviceI2CSlave(I2CController.I2CSlave):
 
     def __init__(self, controller, i2c_addr, fd):
         super().__init__(controller, i2c_addr) 
-        self.fd = fd
+        self._fd = fd
 
     def close(self):
-        if self.fd is None:
+        if self._fd is None:
             return
 
         try:
-            self.fd.close()
-            self.fd = None
+            self._fd.close()
+            self._fd = None
         except Exception as ex:
             self.logger.error("closing: ex=%s", ex)
         super().close()
@@ -82,13 +83,13 @@ class DeviceI2CSlave(I2CController.I2CSlave):
     def write(self, data):
         try:
             self.logger.debug("write: %s", data)
-            self.fd.write(bytes(data))
+            self._fd.write(bytes(data))
         except Exception as ex:
             self.logger.error("writing: ex=%s", ex)
 
     def read(self, bytes_to_read):
         try:
-            data = self.fd.read(bytes_to_read)
+            data = self._fd.read(bytes_to_read)
             self.logger.debug("read: bytes_to_read:%s => data:%s", bytes_to_read, data)
             return data
         except Exception as ex:
@@ -103,7 +104,7 @@ class DeviceI2CSlave(I2CController.I2CSlave):
             (self.i2c_addr, 0, 1, ctypes.pointer(reg)), # Write cmd register.
             (self.i2c_addr, I2C_M_RD, bytes_to_read, ctypes.cast(result, ctypes.POINTER(ctypes.c_uint8))) # Read data.
         ])
-        fcntl.ioctl(self.fd, I2C_RDWR, request)
+        fcntl.ioctl(self._fd, I2C_RDWR, request)
         data = bytearray(result.raw)  # Use .raw instead of .value which will stop at a null byte!
         self.logger.debug("write_read_data: byte_to_write:%s bytes_to_read:%s => data:%s", byte_to_write, bytes_to_read, data)
         return data
@@ -122,6 +123,20 @@ class DeviceI2CController(I2CController.I2CController):
 
             fcntl.ioctl(fd, I2C_SLAVE, i2c_addr)
             slave = DeviceI2CSlave(self, i2c_addr, fd)
+
+            # Query supported functions
+            buf = array.array('I', [0])
+            try:
+                fcntl.ioctl(fd, I2C_FUNCS, buf, True)
+            except (OSError, IOError) as e:
+                slave.close()
+                raise I2CError(e.errno, "Querying supported functions: " + e.strerror)
+
+            # Check that I2C_RDWR ioctl() is supported on this device
+            if (buf[0] & I2C_FUNCS) == 0:
+                slave.close()
+                raise I2CError(None, "I2C not supported on device \"{:s}\"".format(devpath))
+
             return slave
         except Exception as ex:
             self.logger.error("opening: ex=%s", ex)

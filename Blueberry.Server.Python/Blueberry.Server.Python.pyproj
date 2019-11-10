@@ -14,7 +14,7 @@
     <RootNamespace>TcpServer</RootNamespace>
     <InterpreterId>Global|VisualStudio|ptp1</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>--camtype=videostream</CommandLineArguments>
+    <CommandLineArguments>--uart0=com50</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -54,6 +54,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DeviceI2CController.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GridEyeController.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="I2CController.py">

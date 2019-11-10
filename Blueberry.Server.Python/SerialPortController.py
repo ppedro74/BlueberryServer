@@ -14,7 +14,8 @@ class SerialPortController(Controller.Controller):
     def __init__(self, port, baud_rate, log_level):
         self.port = port
         self.baud_rate = baud_rate
-        self.logger = logging.getLogger("dev-{}".format(port))
+        self.name = "dev-{}".format(port)
+        self.logger = logging.getLogger(self.name)
         self.logger.setLevel(log_level)
         self.lock = threading.Lock()
         self.shutdown = True
@@ -54,11 +55,8 @@ class SerialPortController(Controller.Controller):
             last_debug_dt = None
 
             while not self.shutdown:
-                print('aqui 1')
                 if self.serial.isOpen():
-                    print('aqui 2')
                     if self.serial.inWaiting()>0:
-                        print('aqui 3')
                         data = self.serial.read(self.serial.inWaiting())
 
                         self.lock.acquire()
@@ -70,7 +68,6 @@ class SerialPortController(Controller.Controller):
                             self.lock.release()
 
                         time.sleep(0.1) # Wait 100ms
-                    print('aqui 4')
                 else:
                     time.sleep(1) # Wait 1s
 

@@ -22,7 +22,6 @@ class FakeI2CSlave(I2CController.I2CSlave):
         except Exception as ex:
             self.logger.error("writing: ex=%s", ex)
 
-
     def read(self, bytes_to_read):
         data = bytearray(bytes_to_read)
         self.logger.debug("read: bytes_to_read:%s => data:%s", bytes_to_read, data)

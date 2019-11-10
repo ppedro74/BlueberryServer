@@ -161,6 +161,13 @@ def main():
     parser.add_argument("--camwidth", type=int, default=640, help="Camera Video's Width (default: %(default)s)")
     parser.add_argument("--camheight", type=int, default=480, help="Camera Video's Height (default: %(default)s)")
     parser.add_argument("--camfps", type=int, default=15, help="Camera Video's frames per second (default: %(default)s)")
+    parser.add_argument("--camrotation", type=int, default=0, help="Camera Video's rotation (0, 90, 180, and 270) (default: %(default)s)")
+    parser.add_argument("--camflip", 
+                    default="none", 
+                    const="none",
+                    nargs="?",
+                    choices=["none", "horizontal", "vertical", "both"],
+                    help="(default: %(default)s)")
     parser.add_argument("--jpgquality", type=int, default=95, help="Jpeg's quality (0-100) (default: %(default)s)")
     parser.add_argument("--audio", action='store_true', help="enable audio output (default: %(default)s)")
     parser.add_argument("--audiooutputindex", type=int, default=0, help="AudioOutput index (default: %(default)s)")

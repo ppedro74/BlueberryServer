@@ -56,7 +56,7 @@ def start(addr, args):
     elif args.camtype == "picamera":
         try:
             import PiCameraController
-            camera = PiCameraController.PiCameraController(server, (args.camwidth, args.camheight), args.camfps, logging.DEBUG)
+            camera = PiCameraController.PiCameraController(server, (args.camwidth, args.camheight), args.camfps, args.camrotation, args.camflip, logging.DEBUG)
             camera.start()
             ComponentRegistry.ComponentRegistry.register_controller(camera)
         except Exception as ex:

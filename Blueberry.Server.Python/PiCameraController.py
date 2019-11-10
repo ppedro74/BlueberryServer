@@ -9,7 +9,7 @@ import picamera
 import CameraController
 
 class PiCameraController(CameraController.CameraController):
-    def __init__(self, server, resolution, framerate, log_level):
+    def __init__(self, server, resolution, framerate, rotation, flip, log_level):
         super().__init__("PiCameraController", server, resolution, framerate, log_level)
 
         self.camera = picamera.PiCamera()
@@ -17,6 +17,11 @@ class PiCameraController(CameraController.CameraController):
         self.camera.resolution = (width, height)
         prev_framerate = self.camera.framerate
         self.camera.framerate  = framerate
+        self.camera.rotation = rotation
+        if flip == "horizontal" or flip == "both":
+            self.camera.hflip = True
+        if flip == "vertical" or flip == "both":
+            self.camera.vflip = True
         self.logger.debug("framerate previous=%s current=%s", prev_framerate, self.camera.framerate)
 
     def main(self):
@@ -29,6 +34,10 @@ class PiCameraController(CameraController.CameraController):
             stream.seek(0)
             img_bytes = bytes(stream.read())
             self.send_image(img_bytes)
+            if img_bytes[0] != 255 or img_bytes[1] != 216:
+                self.logger.warning("JPG's SOI missing")
+            if img_bytes[-2] != 255 or img_bytes[-1] != 217:
+                self.logger.warning("JPG's EOI missing")
             stream.seek(0)
             stream.truncate()
 
