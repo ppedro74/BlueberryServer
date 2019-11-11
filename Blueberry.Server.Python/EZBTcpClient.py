@@ -64,9 +64,13 @@ class EZBTcpClient(TcpClient.TcpClient):
                         break
                     bauds = int.from_bytes(data, "little")
                     self.logger.debug("EZBProtocol.CommandV4Enum.UART%s_INIT bauds=%s", uart_port, bauds)
-            
+                    com = ComponentRegistry.ComponentRegistry.get_component("uart" + str(uart_port))
+                    if com is not None:
+                        com.serial.baudrate = bauds
+
                 elif cmdv4 in [EZBProtocol.CommandV4Enum.UART0_WRITE, EZBProtocol.CommandV4Enum.UART1_WRITE, EZBProtocol.CommandV4Enum.UART2_WRITE]:
                     uart_port = 0 if cmdv4 == EZBProtocol.CommandV4Enum.UART0_WRITE else 1 if cmdv4 == EZBProtocol.CommandV4Enum.UART1_WRITE else 2
+                   
                     data = self.recv(2)
                     if data is None:
                         break
