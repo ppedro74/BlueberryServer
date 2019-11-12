@@ -22,6 +22,7 @@ class TcpServer(Controller.Controller):
         self.shutdown = False
         self.lock = threading.Lock()
         self.clients = []
+        self.run_thread = None
 
     def get_client_instance(self, connection, client_address):
         return TcpClient.TcpClient("TcpClient", self, connection, client_address)
@@ -69,8 +70,9 @@ class TcpServer(Controller.Controller):
         self.logger.debug("stopping....")
         self.shutdown = True
 
-        self.logger.debug("join th:%s run_thread", self.run_thread.getName())
-        self.run_thread.join()
+        if not self.run_thread is None:
+            self.logger.debug("join th:%s run_thread", self.run_thread.getName())
+            self.run_thread.join()
 
         clients = self.clients.copy()
         for client in clients: 

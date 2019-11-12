@@ -46,31 +46,24 @@ def start(addr, args):
     camera = None
 
     if args.camtype == "videocapture":
-        try:
-            import OCVCamera
-            camera = OCVCamera.OCVCameraController(server, (args.camwidth, args.camheight), args.camfps, logging.DEBUG, args.videocaptureindex, args.jpgquality)
-            camera.start()
-            ComponentRegistry.ComponentRegistry.register_controller(camera)
-        except Exception as ex:
-            logging.error("Error loading OCVCameraController ex=%s", ex)
+        import OCVCamera
+        camera = OCVCamera.OCVCameraController(server, (args.camwidth, args.camheight), args.camfps, logging.DEBUG, args.videocaptureindex, args.jpgquality)
+        camera.start()
+        ComponentRegistry.ComponentRegistry.register_controller(camera)
     elif args.camtype == "picamera":
-        try:
-            import PiCameraController
-            camera = PiCameraController.PiCameraController(server, (args.camwidth, args.camheight), args.camfps, args.camrotation, args.camflip, logging.DEBUG)
-            camera.start()
-            ComponentRegistry.ComponentRegistry.register_controller(camera)
-        except Exception as ex:
-            logging.error("Error loading PiCameraController ex=%s", ex)
-            
-    if camera is None:
+        import PiCameraController
+        camera = PiCameraController.PiCameraController(server, (args.camwidth, args.camheight), args.camfps, args.camrotation, args.camflip, logging.DEBUG)
+        camera.start()
+        ComponentRegistry.ComponentRegistry.register_controller(camera)
+    elif args.camtype == "fake":
         import FakeCameraController
         camera = FakeCameraController.FakeCameraController(server, (args.camwidth, args.camheight), args.camfps, logging.DEBUG)
         camera.start()
         ComponentRegistry.ComponentRegistry.register_controller(camera)
 
-    time.sleep(3)
-
+    #time.sleep(3)
     server.start()
+    return True
 
 def stop():
     broadcaster.stop()

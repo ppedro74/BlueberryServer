@@ -175,7 +175,7 @@ def main():
                     default="none", 
                     const="none",
                     nargs="?",
-                    choices=["none", "picamera", "videocapture"],
+                    choices=["none", "picamera", "videocapture", "fake"],
                     help="(default: %(default)s)")
     parser.add_argument("--videocaptureindex", type=int, default=0, help="VideoCapture index (default: %(default)s)")
     parser.add_argument("--uart0", type=str, default=None, help="UART 0's serial device e.g. /dev/serial0 com4 (default: %(default)s)")
@@ -192,48 +192,54 @@ def main():
 
     args = parser.parse_args()
 
-    if args.audio:
-        setup_PyAudioPlayerController(args.audiooutputindex)
+    try:
+        if args.audio:
+            setup_PyAudioPlayerController(args.audiooutputindex)
 
-    setup_digital_ports()
+        setup_digital_ports()
 
-    i2c_com = setup_i2c()
+        i2c_com = setup_i2c()
     
-    if args.uart0 is not None:
-        setup_SerialPortController("uart0", args.uart0, 115200)
-    if args.uart1 is not None:
-        setup_SerialPortController("uart1", args.uart1, 115200)
-    if args.uart2 is not None:
-        setup_SerialPortController("uart2", args.uart2, 115200)
+        if args.uart0 is not None:
+            setup_SerialPortController("uart0", args.uart0, 115200)
+        if args.uart1 is not None:
+            setup_SerialPortController("uart1", args.uart1, 115200)
+        if args.uart2 is not None:
+            setup_SerialPortController("uart2", args.uart2, 115200)
 
-    if args.maestro is not None:
-        ###Pololu Mini Maestro 24-Channel USB Servo Controller https://www.pololu.com/product/1356
-        ###Used for 24 servos ports D0..D23
-        setup_serial_MaestroServoController(args.maestro)
+        if args.maestro is not None:
+            ###Pololu Mini Maestro 24-Channel USB Servo Controller https://www.pololu.com/product/1356
+            ###Used for 24 servos ports D0..D23
+            setup_serial_MaestroServoController(args.maestro)
 
-    if args.pca9685 == "pwm":
-        ###Adafruit 16-Channel PWM https://www.adafruit.com/product/2327 
-        ###Used for PWM ports (0..23)
-        setup_i2c_PCA9685Controller(i2c_com)
-    elif args.pca9685 == "servo":
-        ###Used for Servo ports (0..23)
-        setup_i2c_PCA9685ServoController(i2c_com)
+        if args.pca9685 == "pwm":
+            ###Adafruit 16-Channel PWM https://www.adafruit.com/product/2327 
+            ###Used for PWM ports (0..23)
+            setup_i2c_PCA9685Controller(i2c_com)
+        elif args.pca9685 == "servo":
+            ###Used for Servo ports (0..23)
+            setup_i2c_PCA9685ServoController(i2c_com)
 
-    if args.pantilthat:
-        ###Pimoroni Pan-Tilt HAT  https://shop.pimoroni.com/products/pan-tilt-hat
-        ###Used to map servo ports D0..D1
-        setup_i2c_PimoroniPanTiltHatServoController(i2c_com)
+        if args.pantilthat:
+            ###Pimoroni Pan-Tilt HAT  https://shop.pimoroni.com/products/pan-tilt-hat
+            ###Used to map servo ports D0..D1
+            setup_i2c_PimoroniPanTiltHatServoController(i2c_com)
 
-    EZBTcpServer.start((args.ezbaddr, args.ezbport))
+        EZBTcpServer.start((args.ezbaddr, args.ezbport))
 
-    if args.camtype != "none":
-        EZBCameraServer.start((args.camaddr, args.camport), args)
+        if args.camtype != "none":
+            EZBCameraServer.start((args.camaddr, args.camport), args)
 
-    time.sleep(3)
-    input("===> Press Enter to quit...\n")
+        #time.sleep(3)
+        input("===> Press Enter to quit...\n")
+        logging.debug("*** Enter pressed ***")
+    except KeyboardInterrupt:
+        print("*** Keyboard Interrupt ***")
+    except Exception as ex:
+        logging.fatal("Exception: %s", ex)
 
-    logging.debug("*** Enter pressed ***")
-
+    logging.info("Terminating")
+    
     controllers = ComponentRegistry.ComponentRegistry.Controllers.copy()
     controllers.reverse()
     for controller in controllers:
@@ -245,6 +251,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 

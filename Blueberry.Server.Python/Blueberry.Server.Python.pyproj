@@ -14,7 +14,7 @@
     <RootNamespace>TcpServer</RootNamespace>
     <InterpreterId>Global|VisualStudio|ptp1</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>--uart0=com43</CommandLineArguments>
+    <CommandLineArguments>--uart0=com50</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

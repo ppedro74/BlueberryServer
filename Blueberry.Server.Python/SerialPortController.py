@@ -29,17 +29,13 @@ class SerialPortController(Controller.Controller):
         self.logger.debug("Starting...")
         self.shutdown = False
         try:
-            #try:
-            #except serial.serialutil.SerialException as ex:
-            #    pass
             self.serial = serial.Serial(self.port, self.baud_rate, timeout=0)
-
             self.run_thread = threading.Thread(target=self.run,args=())
             self.run_thread.start()
-
-        except serial.serialutil.SerialException as ex:
+        except:
             self.shutdown = True
-            self.logger.warning("start ex=%s", ex)
+            raise
+        return
 
     def stop(self):
         if self.shutdown:

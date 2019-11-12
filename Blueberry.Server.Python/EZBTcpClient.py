@@ -11,6 +11,8 @@ import EZBProtocol
 
 class EZBTcpClient(TcpClient.TcpClient):
     EZB4V2_FIRMWARE_ID = 2
+    BLUEBERRY_FIRMWARE_ID = 18602
+
     LAST_ANALOG_PORT = 7
     LAST_DIGITAL_PORT = 23
     SYS_THERMAL_ZONE = "/sys/class/thermal/thermal_zone0/temp"
