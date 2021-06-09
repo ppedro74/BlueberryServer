@@ -15,7 +15,7 @@ class CameraController(Controller.Controller):
         self.name = name
         self.server = server
         self.resolution = resolution
-        self.framerate = framerate
+        self.frame_rate = framerate
         self.log_level = log_level
         self.logger = logging.getLogger(name)
         self.logger.setLevel(log_level)
@@ -65,15 +65,7 @@ class CameraController(Controller.Controller):
         pass
 
     def main(self):
-        frame_rate_delay = 1 / self.framerate
-        while not self.shutdown:
-            data = bytearray()
-            data += self.TAG_EZ_IMAGE
-            img_len = 0
-            data += img_len.to_bytes(4, "little")
-            stream.seek(0)
-            data += bytearray()
-            self.server.send_image(bytes(data))
+        pass
 
     def send_image(self, img_bytes):
         data = bytearray()
@@ -81,4 +73,4 @@ class CameraController(Controller.Controller):
         img_len = len(img_bytes)
         data += img_len.to_bytes(4, "little")
         data += img_bytes
-        self.server.send_image(bytes(data))
+        self.server.send_data(bytes(data))

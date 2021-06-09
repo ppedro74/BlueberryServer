@@ -5,7 +5,7 @@
     <ProjectGuid>2856a44f-cdbe-4525-9677-c5b53e6baa43</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>Main.py</StartupFile>
+    <StartupFile>HeatCamera.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -14,7 +14,7 @@
     <RootNamespace>TcpServer</RootNamespace>
     <InterpreterId>Global|VisualStudio|ptp1</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>--uart0=com50</CommandLineArguments>
+    <CommandLineArguments>--uart0=com3</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -54,6 +54,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DeviceI2CController.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MLX90640Controller.py" />
+    <Compile Include="HeatCamera.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="GridEyeController.py">
@@ -125,6 +129,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="assets\" />
+    <Folder Include="old\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="assets\test-01.wav" />

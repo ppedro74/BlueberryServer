@@ -17,8 +17,8 @@ class EZBTcpClient(TcpClient.TcpClient):
     LAST_DIGITAL_PORT = 23
     SYS_THERMAL_ZONE = "/sys/class/thermal/thermal_zone0/temp"
 
-    def __init__(self, server, client_socket, client_address):
-        super().__init__("EZBTcpClient", server, client_socket, client_address)
+    def __init__(self, log_level, address, client_socket, server):
+        super().__init__("EZBTcpClient", log_level, address, client_socket, server)
 
     def main(self):
         while not self.shutdown:

@@ -25,7 +25,7 @@ class OCVCameraController(CameraController.CameraController):
 
         self._video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
         self._video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-        self._video_capture.set(cv2.CAP_PROP_FPS, self.framerate)
+        self._video_capture.set(cv2.CAP_PROP_FPS, self.frame_rate)
         w = self._video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)
         h = self._video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         f = self._video_capture.get(cv2.CAP_PROP_FPS)
@@ -39,8 +39,8 @@ class OCVCameraController(CameraController.CameraController):
             self._video_capture.release()
             return False
 
-        if f!=self.framerate:
-            self.logger.warning("fps setting ignored requested=%s current=%s", self.framerate, f)
+        if f!=self.frame_rate:
+            self.logger.warning("fps setting ignored requested=%s current=%s", self.frame_rate, f)
         
         self.logger.debug("setup finished")
         return True
@@ -50,7 +50,7 @@ class OCVCameraController(CameraController.CameraController):
         return
 
     def main(self):
-        frame_rate_delay = 1.0 / self.framerate
+        frame_rate_delay = 1.0 / self.frame_rate
         last_frame_time = 0
         while not self.shutdown:
             if last_frame_time != 0:

@@ -20,15 +20,15 @@ class EZBCameraUdpBroadcaster(UdpBroadcaster.UdpBroadcaster):
         return "{}||{}-Server||{}||{}".format("Camera", hostname, addr, self.server.address[1])
 
 class EZBCameraTcpClient(TcpClient.TcpClient):
-    def __init__(self, server, client_socket, client_address):
-        super().__init__("EZBCameraTcpClient", server, client_socket, client_address)
+    def __init__(self, log_level, address, client_socket, server):
+        super().__init__("EZBCameraTcpClient", log_level, address, client_socket, server)
 
 class EZBCameraTcpServer(TcpServer.TcpServer):
     def __init__(self, address, log_level):
         super().__init__("EZBCameraTcpServer", address, log_level)
 
-    def get_client_instance(self, connection, client_address):
-        return EZBCameraTcpClient(self, connection, client_address)
+    def get_client_instance(self, connection, address):
+        return EZBCameraTcpClient(self.log_level, address, connection, self)
 
     def send_image(self, data):
         clients = self.clients.copy()

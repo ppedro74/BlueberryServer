@@ -24,8 +24,8 @@ class TcpServer(Controller.Controller):
         self.clients = []
         self.run_thread = None
 
-    def get_client_instance(self, connection, client_address):
-        return TcpClient.TcpClient("TcpClient", self, connection, client_address)
+    def get_client_instance(self, connection, address):
+        return TcpClient.TcpClient("TcpClient", self.log_level, address, connection, self)
 
     def run(self):
         try:
@@ -37,10 +37,10 @@ class TcpServer(Controller.Controller):
                         self.logger.debug("waiting for a connection")
                         last_debug_dt = datetime.datetime.now()
 
-                    connection, client_address = self.socket.accept()
-                    self.logger.info("accepted client connection from %s", client_address)
+                    connection, address = self.socket.accept()
+                    self.logger.info("accepted client connection from %s", address)
 
-                    client = self.get_client_instance(connection, client_address)
+                    client = self.get_client_instance(connection, address)
                     self.register_client(client)
                 except socket.timeout as e:
                     pass
@@ -84,7 +84,7 @@ class TcpServer(Controller.Controller):
         self.lock.acquire()
         try:
             self.clients.append(client)
-            self.logger.debug("register client:%s #clients:%s", client.client_address, len(self.clients))
+            self.logger.debug("register client:%s #clients:%s", client.address, len(self.clients))
         finally:
             self.lock.release()
 
@@ -93,11 +93,11 @@ class TcpServer(Controller.Controller):
         try:
             if client in self.clients:
                 self.clients.remove(client)
-                self.logger.debug("unregister client:%s #clients:%s", client.client_address, len(self.clients))
+                self.logger.debug("unregister client:%s #clients:%s", client.address, len(self.clients))
         finally:
             self.lock.release()
 
-    def send_image(self, data):
+    def send_data(self, data):
         clients = self.clients.copy()
         for client in clients: 
             client.send(data)

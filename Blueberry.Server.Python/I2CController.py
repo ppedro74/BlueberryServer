@@ -21,7 +21,7 @@ class I2CSlave:
     def read(self, bytes_to_read):
         return None
 
-    def write_read_data(self, byte_to_write, bytes_to_read):
+    def write_read_data(self, bytes_to_write, number_of_bytes_to_read):
         return None
 
     def write_reg_byte(self, reg_u8, data_u8):
@@ -30,15 +30,19 @@ class I2CSlave:
         data[1] = data_u8
         self.write(data)
 
-    def write_reg_word(self, reg_u8, data_u16):
+    def write_reg_word(self, reg_u8, data_u16, is_data_u16_big_endian):
         data = bytearray()
         data.append(reg_u8)
-        data += data_u16.to_bytes(2, "little")
+        data += bytes([data_u16 >> 8, data_u16 & 0xFF] if is_data_u16_big_endian else [data_u16 & 0xFF, data_u16 >> 8])
         self.write(data)
 
     def read_reg_byte(self, reg_u8):
-        data = self.write_read_data(reg_u8, 1)
+        data = self.write_read_data([ reg_u8 ], 1)
         return data[0]
+
+    def read_reg_word(self, reg_u8, is_word_big_endian):
+        data = self.write_read_data([ reg_u8 ], 1)
+        return ((data[0] << 8) | data[1]) if is_word_big_endian else (data[0] | (data[1] << 8))
 
 
 class I2CController(Controller.Controller):

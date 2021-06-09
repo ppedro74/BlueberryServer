@@ -25,7 +25,7 @@ class PiCameraController(CameraController.CameraController):
         self.logger.debug("framerate previous=%s current=%s", prev_framerate, self.camera.framerate)
 
     def main(self):
-        self.camera.start_preview()
+        #self.camera.start_preview()
         time.sleep(2)
         stream = io.BytesIO()
         for foo in self.camera.capture_continuous(stream, "jpeg", use_video_port=True):
@@ -42,5 +42,6 @@ class PiCameraController(CameraController.CameraController):
             stream.truncate()
 
     def run_end(self):
-        self.camera.stop_preview()
+        #self.camera.stop_preview()
+        pass
 

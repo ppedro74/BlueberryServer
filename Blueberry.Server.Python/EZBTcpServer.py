@@ -24,8 +24,8 @@ class EZBTcpServer(TcpServer.TcpServer):
     def __init__(self, address, log_level):
         super().__init__("EZBTcpServer", address, log_level)
 
-    def get_client_instance(self, connection, client_address):
-        return EZBTcpClient.EZBTcpClient(self, connection, client_address)
+    def get_client_instance(self, connection, address):
+        return EZBTcpClient.EZBTcpClient(address, connection, self)
 
 def start(addr):
     server = EZBTcpServer(addr, logging.DEBUG)

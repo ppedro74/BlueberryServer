@@ -5,27 +5,36 @@ import os
 import datetime
 import time
 import socket
+import traceback
 
 class TcpClient:
 
-    def __init__(self, name, server, client_socket, client_address):
+    def __init__(self, name, log_level, client_address=None, client_socket=None, server=None):
         self.name = "{}-{}".format(name, client_address)
-        self.server = server
-        self.socket = client_socket
-        self.client_address = client_address
         self.logger = logging.getLogger(self.name)
-        self.logger.setLevel(self.server.log_level)
+        self.logger.setLevel(log_level)
+        self.address = client_address
+        self.socket = client_socket
+        self.server = server
         self.all_data = bytearray() 
         self.shutdown = False
+        if self.server is not None:
+            self.run_thread = threading.Thread(target=self.run, args=())
+            self.run_thread.start()
 
+    def connect(self, server_address):
+        self.server_address = server_address
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect(server_address)
         self.run_thread = threading.Thread(target=self.run, args=())
         self.run_thread.start()
 
     def stop(self):
-        self.logger.debug("stopping client:%s ...", self.client_address)
+        self.logger.debug("stopping client:%s ...", self.address)
         self.shutdown = True
         self.logger.debug("join th:%s", self.run_thread.getName())
-        self.run_thread.join()
+        if self.run_thread is not None:
+            self.run_thread.join()
 
     def recv(self, req_size):
         try:
@@ -70,9 +79,11 @@ class TcpClient:
         except Exception as ex:
             self.shutdown = True
             self.logger.debug("exception %s", ex)
+            traceback.print_exc()
 
         self.logger.debug("shutting down....")
-        self.server.unregister_client(self)
+        if self.server is not None:
+            self.server.unregister_client(self)
         self.socket.close()
         self.logger.debug("terminated")
     

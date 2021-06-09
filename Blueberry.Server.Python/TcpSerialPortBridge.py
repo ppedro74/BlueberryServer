@@ -10,11 +10,11 @@ import SerialPortController
 
 class TcpSerialPortClient:
 
-    def __init__(self, server, client_socket, client_address):
-        self.logger = logging.getLogger("TcpSerialPortClient-{}".format(client_address))
+    def __init__(self, server, client_socket, address):
+        self.logger = logging.getLogger("TcpSerialPortClient-{}".format(address))
         self.server = server
         self.socket = client_socket
-        self.client_address = client_address
+        self.address = address
         self.run_thread = threading.Thread(target=self.run, args=())
         self.run_thread.start()
 
@@ -37,7 +37,7 @@ class TcpSerialPortClient:
         self.logger.debug("terminated")
 
     def stop(self):
-        self.logger.debug("stopping client:%s ...", self.client_address)
+        self.logger.debug("stopping client:%s ...", self.address)
         self.socket.close()
 
     def send(self, data):
@@ -88,10 +88,10 @@ class TcpSerialPortBridge(object):
                         self.logger.debug("waiting for a connection")
                         last_debug_dt = datetime.datetime.now()
 
-                    connection, client_address = self.socket.accept()
-                    self.logger.info("accepted client connection from %s", client_address)
+                    connection, address = self.socket.accept()
+                    self.logger.info("accepted client connection from %s", address)
 
-                    client = TcpSerialPortClient(self, connection, client_address)
+                    client = TcpSerialPortClient(self, connection, address)
                     self.register_client(client)
                 except socket.timeout as e:
                     pass
@@ -128,7 +128,7 @@ class TcpSerialPortBridge(object):
         self.run_thread.join()
 
         for client in clients: 
-            self.logger.debug("join th:%s client:%s", client.run_thread.getName(), client.client_address)
+            self.logger.debug("join th:%s client:%s", client.run_thread.getName(), client.address)
             client.run_thread.join()
 
         self.logger.debug("join th:%s run_serial_thread", self.run_serial_thread.getName())
@@ -140,7 +140,7 @@ class TcpSerialPortBridge(object):
         self.lock.acquire()
         try:
             self.clients.append(client)
-            self.logger.debug("register client:%s #clients:%s", client.client_address, len(self.clients))
+            self.logger.debug("register client:%s #clients:%s", client.address, len(self.clients))
         finally:
             self.lock.release()
 
@@ -148,7 +148,7 @@ class TcpSerialPortBridge(object):
         self.lock.acquire()
         try:
             self.clients.remove(client)
-            self.logger.debug("unregister client:%s #clients:%s", client.client_address, len(self.clients))
+            self.logger.debug("unregister client:%s #clients:%s", client.address, len(self.clients))
         finally:
             self.lock.release()
 

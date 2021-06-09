@@ -65,7 +65,7 @@ class PimoroniPanTiltHatServoController(ServoController.ServoController):
             return
         if has_changes:
             self._set_config()
-        self.slave.write_reg_word(reg, position_in_us)
+        self.slave.write_reg_word(reg, position_in_us, false)
 
     def set_speed(self, port, speed):
         pass

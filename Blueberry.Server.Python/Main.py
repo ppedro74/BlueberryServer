@@ -158,8 +158,8 @@ def main():
     parser.add_argument("--ezbport", type=int, default=10023, help="EZB Server TCP port (default: %(default)s)")
     parser.add_argument("--camaddr", type=str, default="0.0.0.0", help="Camera Server IP Address (default: %(default)s)")
     parser.add_argument("--camport", type=int, default=10024, help="Camera Server TCP Port (default: %(default)s)")
-    parser.add_argument("--camwidth", type=int, default=640, help="Camera Video's Width (default: %(default)s)")
-    parser.add_argument("--camheight", type=int, default=480, help="Camera Video's Height (default: %(default)s)")
+    parser.add_argument("--camwidth", type=int, default=320, help="Camera Video's Width (default: %(default)s)")
+    parser.add_argument("--camheight", type=int, default=240, help="Camera Video's Height (default: %(default)s)")
     parser.add_argument("--camfps", type=int, default=15, help="Camera Video's frames per second (default: %(default)s)")
     parser.add_argument("--camrotation", type=int, default=0, help="Camera Video's rotation (0, 90, 180, and 270) (default: %(default)s)")
     parser.add_argument("--camflip", 

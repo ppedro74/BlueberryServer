@@ -6,39 +6,34 @@ import ctypes
 import array
 
 # I2C C API constants (from linux kernel headers)
-I2C_M_TEN             = 0x0010  # this is a ten bit chip address
-I2C_M_RD              = 0x0001  # read data, from slave to master
-I2C_M_STOP            = 0x8000  # if I2C_FUNC_PROTOCOL_MANGLING
-I2C_M_NOSTART         = 0x4000  # if I2C_FUNC_NOSTART
-I2C_M_REV_DIR_ADDR    = 0x2000  # if I2C_FUNC_PROTOCOL_MANGLING
-I2C_M_IGNORE_NAK      = 0x1000  # if I2C_FUNC_PROTOCOL_MANGLING
-I2C_M_NO_RD_ACK       = 0x0800  # if I2C_FUNC_PROTOCOL_MANGLING
-I2C_M_RECV_LEN        = 0x0400  # length will be first received byte
-
-I2C_SLAVE             = 0x0703  # Use this slave address
-I2C_SLAVE_FORCE       = 0x0706  # Use this slave address, even if
+I2C_M_TEN = 0x0010  # this is a ten bit chip address
+I2C_M_RD = 0x0001  # read data, from slave to master
+I2C_M_STOP = 0x8000  # if I2C_FUNC_PROTOCOL_MANGLING
+I2C_M_NOSTART = 0x4000  # if I2C_FUNC_NOSTART
+I2C_M_REV_DIR_ADDR = 0x2000  # if I2C_FUNC_PROTOCOL_MANGLING
+I2C_M_IGNORE_NAK = 0x1000  # if I2C_FUNC_PROTOCOL_MANGLING
+I2C_M_NO_RD_ACK = 0x0800  # if I2C_FUNC_PROTOCOL_MANGLING
+I2C_M_RECV_LEN = 0x0400  # length will be first received byte
+I2C_SLAVE = 0x0703  # Use this slave address
+I2C_SLAVE_FORCE = 0x0706  # Use this slave address, even if
                                 # is already in use by a driver!
-I2C_TENBIT            = 0x0704  # 0 for 7 bit addrs, != 0 for 10 bit
-I2C_FUNCS             = 0x0705  # Get the adapter functionality mask
-I2C_RDWR              = 0x0707  # Combined R/W transfer (one STOP only)
-I2C_PEC               = 0x0708  # != 0 to use PEC with SMBus
-I2C_SMBUS             = 0x0720  # SMBus transfer
+I2C_TENBIT = 0x0704  # 0 for 7 bit addrs, != 0 for 10 bit
+I2C_FUNCS = 0x0705  # Get the adapter functionality mask
+I2C_RDWR = 0x0707  # Combined R/W transfer (one STOP only)
+I2C_PEC = 0x0708  # != 0 to use PEC with SMBus
+I2C_SMBUS = 0x0720  # SMBus transfer
 
 
 # ctypes versions of I2C structs defined by kernel.
 class i2c_msg(ctypes.Structure):
-    _fields_ = [
-        ('addr',  ctypes.c_uint16),
+    _fields_ = [('addr',  ctypes.c_uint16),
         ('flags', ctypes.c_uint16),
         ('len',   ctypes.c_uint16),
-        ('buf',   ctypes.POINTER(ctypes.c_uint8))
-    ]
+        ('buf',   ctypes.POINTER(ctypes.c_uint8))]
 
 class i2c_rdwr_ioctl_data(ctypes.Structure):
-    _fields_ = [
-        ('msgs',  ctypes.POINTER(i2c_msg)),
-        ('nmsgs', ctypes.c_uint32)
-    ]
+    _fields_ = [('msgs',  ctypes.POINTER(i2c_msg)),
+        ('nmsgs', ctypes.c_uint32)]
 
 
 def make_i2c_rdwr_data(messages):
@@ -49,16 +44,16 @@ def make_i2c_rdwr_data(messages):
     flags value, buffer length, ctypes c_uint8 pointer to buffer.
     """
     # Create message array and populate with provided data.
-    msg_data_type = i2c_msg*len(messages)
+    msg_data_type = i2c_msg * len(messages)
     msg_data = msg_data_type()
     for i, m in enumerate(messages):
-        msg_data[i].addr  = m[0] & 0x7F
+        msg_data[i].addr = m[0] & 0x7F
         msg_data[i].flags = m[1]
-        msg_data[i].len   = m[2]
-        msg_data[i].buf   = m[3]
+        msg_data[i].len = m[2]
+        msg_data[i].buf = m[3]
     # Now build the data structure.
     data = i2c_rdwr_ioctl_data()
-    data.msgs  = msg_data
+    data.msgs = msg_data
     data.nmsgs = len(messages)
     return data
 
@@ -82,8 +77,8 @@ class DeviceI2CSlave(I2CController.I2CSlave):
 
     def write(self, data):
         try:
-            self.logger.debug("write: %s", data)
-            self._fd.write(bytes(data))
+            res = self._fd.write(bytes(data))
+            self.logger.debug("write:%s res:%s", data, res)
         except Exception as ex:
             self.logger.error("writing: ex=%s", ex)
 
@@ -96,18 +91,30 @@ class DeviceI2CSlave(I2CController.I2CSlave):
             self.logger.error("reading: ex=%s", ex)
         return bytes()
 
-    def write_read_data(self, byte_to_write, bytes_to_read):
+    def write_read_data(self, bytes_to_write, number_of_bytes_to_read):
         # Build ctypes values to marshall between ioctl and Python.
-        reg = ctypes.c_uint8(byte_to_write)
-        result = ctypes.create_string_buffer(bytes_to_read) #From ctypes
-        request = make_i2c_rdwr_data([
-            (self.i2c_addr, 0, 1, ctypes.pointer(reg)), # Write cmd register.
-            (self.i2c_addr, I2C_M_RD, bytes_to_read, ctypes.cast(result, ctypes.POINTER(ctypes.c_uint8))) # Read data.
+        bytes_to_write = bytes(bytes_to_write) 
+        request = ctypes.create_string_buffer(bytes_to_write)
+        result = ctypes.create_string_buffer(number_of_bytes_to_read)
+        request = make_i2c_rdwr_data([(self.i2c_addr, 0, len(bytes_to_write), ctypes.cast(request, ctypes.POINTER(ctypes.c_uint8))), # Write word register.
+            (self.i2c_addr, I2C_M_RD, number_of_bytes_to_read, ctypes.cast(result, ctypes.POINTER(ctypes.c_uint8))) # Read data.
         ])
         fcntl.ioctl(self._fd, I2C_RDWR, request)
-        data = bytearray(result.raw)  # Use .raw instead of .value which will stop at a null byte!
-        self.logger.debug("write_read_data: byte_to_write:%s bytes_to_read:%s => data:%s", byte_to_write, bytes_to_read, data)
-        return data
+        result_data = bytearray(result.raw)  # Use .raw instead of .value which will stop at a null byte!
+        self.logger.debug("write_read_data: bytes_to_write:%s #bytes_to_read:%s => result_data:%s", bytes_to_write, number_of_bytes_to_read, result_data)
+        return result_data
+
+    #def write_read_data(self, byte_to_write, bytes_to_read):
+    #    # Build ctypes values to marshall between ioctl and Python.
+    #    reg = ctypes.c_uint8(byte_to_write)
+    #    result = ctypes.create_string_buffer(bytes_to_read)
+    #    request = make_i2c_rdwr_data([(self.i2c_addr, 0, 1, ctypes.pointer(reg)), # Write cmd register.
+    #        (self.i2c_addr, I2C_M_RD, bytes_to_read, ctypes.cast(result, ctypes.POINTER(ctypes.c_uint8))) # Read data.
+    #    ])
+    #    fcntl.ioctl(self._fd, I2C_RDWR, request)
+    #    data = bytearray(result.raw)  # Use .raw instead of .value which will stop at a null byte!
+    #    self.logger.debug("write_read_data: byte_to_write:%s bytes_to_read:%s => data:%s", byte_to_write, bytes_to_read, data)
+    #    return data
 
 class DeviceI2CController(I2CController.I2CController):
    
@@ -117,9 +124,10 @@ class DeviceI2CController(I2CController.I2CController):
 
     def create_slave(self, i2c_addr):
         try:
-            dev_name = "/dev/i2c-"+str(self.bus)
+            dev_name = "/dev/i2c-" + str(self.bus)
             fd = io.open(dev_name, "r+b", buffering=0)
-            #self.logger.debug("opened: dev_name:%s fd:%s addr:%s", dev_name, fd, i2c_addr)
+            #self.logger.debug("opened: dev_name:%s fd:%s addr:%s", dev_name,
+            #fd, i2c_addr)
 
             fcntl.ioctl(fd, I2C_SLAVE, i2c_addr)
             slave = DeviceI2CSlave(self, i2c_addr, fd)
